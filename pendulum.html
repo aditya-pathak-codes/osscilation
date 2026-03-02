@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SHM Simulator</title>
+  <!-- Load Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+  <!-- Load MathJax for clear formula rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    :root {
+      --primary-color: #2C3E50;
+      --accent-color: #E74C3C;
+      --background-gradient: linear-gradient(135deg, #74ABE2, #5563DE);
+      --container-bg: rgba(255, 255, 255, 0.95);
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: var(--background-gradient);
+      color: var(--primary-color);
+      text-align: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: var(--container-bg);
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    h1, h2 {
+      margin: 10px 0;
+    }
+    h1 {
+      font-size: 2.5em;
+      font-weight: 700;
+    }
+    h2 {
+      font-size: 1.8em;
+      font-weight: 500;
+    }
+    p {
+      font-size: 1em;
+      line-height: 1.6;
+      margin: 10px 0;
+    }
+    ul {
+      text-align: left;
+      display: inline-block;
+      margin: 10px 0;
+      padding-left: 20px;
+      font-size: 0.95em;
+    }
+    input {
+      margin: 5px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      width: 80px;
+      font-size: 1em;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 1em;
+      background: var(--accent-color);
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #c0392b;
+    }
+    canvas {
+      display: block;
+      margin: 20px auto;
+      border: 2px solid #bdc3c7;
+      border-radius: 10px;
+    }
+    /* Specific styling for the pendulum and graph canvases */
+    #pendulumCanvas {
+      background: #ecf0f1;
+    }
+    #graphCanvas {
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Simple Harmonic Motion (SHM) Simulator</h1>
+    <p>SHM is a type of periodic motion where an object oscillates about an equilibrium position.</p>
+
+    <h2>Theory &amp; Definitions</h2>
+    <p><strong>What is SHM?</strong> Simple Harmonic Motion is characterized by a restoring force that is directly proportional to the displacement from its equilibrium position and acts in the opposite direction, resulting in smooth oscillations.</p>
+    <p><strong>Key Formulas:</strong></p>
+    <ul>
+      <li><em>Displacement=></em> x(t) = sin(omega t )</li>
+      <li><em>Acceleration=></em> a(t) = - omega^2 x(t) or -Aomega<sup>2</sup>sin(omegat)</li>
+      <li><em>Angular Frequency (W)=></em> W = 2π/T </li>
+      <li><em>Time Period=></em> T =  2π/W</li>
+    </ul>
+    <p><strong>Parameter Definitions:</strong></p>
+    <ul>
+      <li><strong>Amplitude (A):</strong> The maximum displacement from the equilibrium position.</li>
+      <li><strong>Frequency (f):</strong> The number of oscillations per unit time.</li>
+      <li><strong>Damping (γ):</strong> A factor representing energy loss (like friction), which reduces the amplitude over time.</li>
+    </ul>
+
+    <div>
+      <label>Amplitude (A): <input type="number" id="amplitude" value="100"></label>
+      <label>Frequency (f): <input type="number" id="frequency" value="1"></label>
+      <label>Damping (γ): <input type="number" id="damping" value="0.01"></label>
+    </div>
+    <button onclick="startSimulation()">Start Simulation</button>
+
+    <!-- Pendulum Simulation Canvas -->
+    <canvas id="pendulumCanvas" width="400" height="400"></canvas>
+    <!-- Graph Canvas for plotting displacement vs. time -->
+    <canvas id="graphCanvas" width="400" height="200"></canvas>
+  </div>
+
+  <script>
+    function startSimulation() {
+      // Pendulum canvas setup
+      const pendulumCanvas = document.getElementById("pendulumCanvas");
+      const pCtx = pendulumCanvas.getContext("2d");
+      const A = parseFloat(document.getElementById("amplitude").value);
+      const f = parseFloat(document.getElementById("frequency").value);
+      const damping = parseFloat(document.getElementById("damping").value);
+
+      // Graph canvas setup
+      const graphCanvas = document.getElementById("graphCanvas");
+      const gCtx = graphCanvas.getContext("2d");
+      const graphWindow = 10; // seconds to display on graph
+      let graphData = [];  // To store {t, x} pairs
+
+      let t = 0;
+
+      function drawPendulum() {
+        // Clear pendulum canvas
+        pCtx.clearRect(0, 0, pendulumCanvas.width, pendulumCanvas.height);
+        // Draw coordinate axes on pendulum canvas
+        const centerX = pendulumCanvas.width / 2;
+        // Draw y-axis at center
+        pCtx.beginPath();
+        pCtx.moveTo(centerX, 0);
+        pCtx.lineTo(centerX, pendulumCanvas.height);
+        pCtx.strokeStyle = '#95a5a6';
+        pCtx.stroke();
+
+        // Calculate displacement using SHM formula
+        const omega = 2 * Math.PI * f;
+        const x = A * Math.cos(omega * t) * Math.exp(-damping * t);
+        const pivotY = 50; // fixed pivot y-coordinate
+        const pendulumX = centerX + x;
+        const pendulumY = 200;
+
+        // Draw pendulum rod
+        pCtx.beginPath();
+        pCtx.moveTo(centerX, pivotY);
+        pCtx.lineTo(pendulumX, pendulumY);
+        pCtx.strokeStyle = varColor = '#2C3E50';
+        pCtx.stroke();
+
+        // Draw pendulum bob
+        pCtx.beginPath();
+        pCtx.arc(pendulumX, pendulumY, 20, 0, Math.PI * 2);
+        pCtx.fillStyle = "#E74C3C";
+        pCtx.fill();
+
+        // Save graph data point
+        graphData.push({ time: t, displacement: x });
+        // Remove old points beyond the time window
+        graphData = graphData.filter(point => t - point.time <= graphWindow);
+
+        drawGraph();
+
+        t += 0.05;
+        requestAnimationFrame(drawPendulum);
+      }
+
+      function drawGraph() {
+        // Clear graph canvas
+        gCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+
+        // Draw axes for the graph
+        // x-axis: horizontal line at mid-height
+        const midY = graphCanvas.height / 2;
+        gCtx.beginPath();
+        gCtx.moveTo(0, midY);
+        gCtx.lineTo(graphCanvas.width, midY);
+        gCtx.strokeStyle = "#95a5a6";
+        gCtx.stroke();
+        // y-axis: vertical line at left
+        gCtx.beginPath();
+        gCtx.moveTo(0, 0);
+        gCtx.lineTo(0, graphCanvas.height);
+        gCtx.stroke();
+
+        // Define scaling factors
+        const xScale = graphCanvas.width / graphWindow;
+        // Use initial amplitude for y scaling (if A is 0, avoid division by zero)
+        const yScale = A !== 0 ? (graphCanvas.height / 2) / A : 1;
+
+        // Plot the displacement vs. time
+        gCtx.beginPath();
+        graphData.forEach((point, index) => {
+          const xPos = (point.time - (t - graphWindow)) * xScale;
+          // Invert y so that positive displacement goes upward
+          const yPos = midY - point.displacement * yScale;
+          if (index === 0) {
+            gCtx.moveTo(xPos, yPos);
+          } else {
+            gCtx.lineTo(xPos, yPos);
+          }
+        });
+        gCtx.strokeStyle = "#E74C3C";
+        gCtx.lineWidth = 2;
+        gCtx.stroke();
+      }
+
+      drawPendulum();
+    }
+  </script>
+</body>
+</html>
